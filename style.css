@@ -11,7 +11,7 @@ button.big{min-height:52px;min-width:52px;padding:10px 18px;font-size:18px}
 button.primary{background:#c8331f;border-color:#ffcf3a;color:#fff}button.warn{border-color:#a33}
 button.sel{border-color:#ffcf3a;box-shadow:0 0 12px #ffcf3a}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:10px;max-width:720px;margin:auto}
-.hero{padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px}.hero img{width:80px;height:80px;object-fit:contain}
+.hero{padding:6px;display:flex;flex-direction:column;align-items:center;gap:4px}.hero img{width:80px;height:80px;object-fit:cover;object-position:50% 20%;border-radius:50%;border:2px solid #ff8a00}
 .pow{min-height:22px;color:#ffcf3a;font-size:16px}
 .seg{display:inline-flex;gap:6px}.seg button{min-width:90px}
 .chk{display:block;margin:10px;font-size:17px}.chk input{width:22px;height:22px;vertical-align:middle}
@@ -32,7 +32,7 @@ button.sel{border-color:#ffcf3a;box-shadow:0 0 12px #ffcf3a}
 #fight{display:flex;flex-direction:column;justify-content:center;background:radial-gradient(#5a1010,#000)}
 .fbars{display:flex;gap:20px;max-width:800px;margin:0 auto;width:100%}.hp{flex:1;text-align:left}.hp.r{text-align:right}.hpb{height:22px;border:2px solid #ffcf3a;background:#300;border-radius:4px;overflow:hidden}.hpb i{display:block;height:100%;width:100%;background:linear-gradient(#ffe066,#e08a00);transition:width .25s}.hp.r .hpb i{margin-left:auto}
 .arena{display:flex;align-items:center;justify-content:center;gap:4vw;margin:20px 0;min-height:40vh}
-.fighter{width:min(38vw,300px);height:min(38vw,300px)}.fighter img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 16px #ff8a00)}
+.fighter{width:min(38vw,300px);height:min(38vw,300px)}.fighter img{width:100%;height:100%;object-fit:cover;object-position:50% 20%;border-radius:50%;border:4px solid #ff8a00;filter:drop-shadow(0 0 16px #ff8a00)}
 .fighter.l{animation:slamL .5s cubic-bezier(.2,1.6,.4,1) both}.fighter.r{animation:slamR .5s .25s cubic-bezier(.2,1.6,.4,1) both}
 @keyframes slamL{from{transform:translateX(-120vw) rotate(-20deg)}}@keyframes slamR{from{transform:translateX(120vw) rotate(20deg)}}
 .hit{animation:hit .2s}@keyframes hit{50%{transform:translateX(10px) scale(.95);filter:brightness(3)}}
