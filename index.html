@@ -1,0 +1,71 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>X ROADS — friends edition</title><meta name="theme-color" content="#14110e">
+<link rel="stylesheet" href="style.css"></head><body>
+<canvas id="cv"></canvas>
+<div id="hud" class="hidden">
+ <div class="hudl"><b id="hPassed">0/10</b><small>BANNERS</small></div>
+ <div class="hudl"><b id="hSeats">0</b><small>SEATS</small></div>
+ <div class="hudl"><b id="hCombo">x0</b><small>COMBO</small></div>
+ <div class="hudl ghostbox"><small id="gName">HOUSE</small><div class="bars"><div class="bar"><i id="pBar"></i></div><div class="bar g"><i id="gBar"></i></div></div></div>
+ <div class="hudbtns"><button id="bPower" class="big">⚡</button><button id="bPause" class="big">❚❚</button><button class="mute big">🔊</button><button id="bLeave" class="big warn">✕ Leave</button></div>
+</div>
+<div id="flavor" class="hidden"></div>
+<div id="tap" class="hidden">TAP / SPACE to fly<span id="powHint" class="hidden"></span></div>
+
+<section id="menu" class="screen">
+ <div class="topbar"><button class="mute big">🔊</button><button id="langBtn" class="big">తెలుగు / EN</button></div>
+ <h1>X&nbsp;ROADS</h1>
+ <p class="goal">Fly through 10 banners. Beat your rival.</p>
+ <h3>1 · Pick your hero</h3><div id="heroGrid" class="grid"></div>
+ <p id="heroPow" class="pow"></p>
+ <h3>2 · Difficulty</h3>
+ <div class="seg" id="diffSeg"><button data-d="easy">Easy</button><button data-d="normal">Normal</button><button data-d="hard">Hard</button></div>
+ <label class="chk"><input type="checkbox" id="practice" checked> Practice banner first (not scored)</label>
+ <h3>3 · Play</h3>
+ <div class="modes">
+  <button class="big primary" data-mode="house">▶ House ghost<small>Race a computer rival flying the same banners</small></button>
+  <button class="big" data-mode="pass">👥 Pass the phone<small>2 players, take turns, then fight</small></button>
+  <button class="big" data-mode="newprint">🎞 New print<small>Fresh random banner layout vs the house</small></button>
+ </div>
+ <details open class="rules"><summary>How it works</summary>
+ <ul>
+ <li><b>Controls:</b> tap / click / Space = flap. <b>E</b> or ⚡ = hero power. <b>P</b>/Esc = pause.</li>
+ <li>Pass through the gap in each red banner. Hit a banner or the road = show over.</li>
+ <li><span class="term" title="Your total for each banner passed">Seats</span>: +1 per banner, <b>+3 CENTER</b> if you pass near the middle, <b>+2 WHISTLE</b> if you scrape the edge.</li>
+ <li><span class="term" title="Chain of CENTER/WHISTLE passes in a row">Combo</span>: every bonus pass in a row adds +1 extra seat per step.</li>
+ </ul>
+ <table class="gloss"><tr><th>Column</th><th>Means</th></tr>
+ <tr><td>Share</td><td>Banners passed × 10</td></tr>
+ <tr><td>Gross</td><td>All seats you collected (base + bonuses + combo)</td></tr>
+ <tr><td>Overseas</td><td>Best combo × 5</td></tr>
+ <tr><td>Loudest</td><td>Whistles (edge passes) × 5</td></tr>
+ <tr><td><b>Total</b></td><td>Share + Gross + Overseas + Loudest. Higher total wins.</td></tr></table>
+ </details>
+ <h3>Leaderboard</h3><div id="lbMenu"></div>
+</section>
+
+<section id="pass" class="screen hidden">
+ <h2>📱 Pass the phone to Player 2</h2>
+ <p>Player 1 scored <b id="p1Score">0</b>. Player 2: pick your hero. You'll see Player 1's run as a ghost.</p>
+ <div id="heroGrid2" class="grid"></div><p id="heroPow2" class="pow"></p>
+ <div class="modes"><button class="big primary" id="p2Go">▶ Player 2 go</button><button class="big warn" id="p2Back">← Back to menu</button></div>
+</section>
+
+<section id="fight" class="screen hidden">
+ <div class="fbars"><div class="hp"><span id="fN1"></span><div class="hpb"><i id="hp1"></i></div></div><div class="hp r"><span id="fN2"></span><div class="hpb"><i id="hp2"></i></div></div></div>
+ <div class="arena"><div class="fighter l" id="f1"></div><div class="vs" id="vs">VS</div><div class="fighter r" id="f2"></div></div>
+ <div id="meme" class="meme"></div>
+ <button class="big" id="skipFight">Skip ▸</button>
+</section>
+
+<section id="result" class="screen hidden">
+ <div id="verdict" class="verdict"></div>
+ <table id="breakdown" class="gloss"></table>
+ <div id="nameEntry"></div>
+ <div class="modes"><button class="big primary" id="again">↻ Run it back</button><button class="big warn" id="toMenu">← Back to menu</button></div>
+ <h3>Leaderboard</h3><div id="lbRes"></div>
+</section>
+
+<section id="pauseS" class="screen hidden overlay"><h2>Paused</h2><div class="modes"><button class="big primary" id="resume">▶ Resume</button><button class="big warn" id="pLeave">✕ Leave the show</button></div></section>
+<script src="game.js"></script></body></html>
