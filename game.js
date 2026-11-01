@@ -15,6 +15,22 @@ const MEMES=['Box office lo ${w} rampage! 🔥','${l}: "Ee scene lo nenu ledu" �
 const $=s=>document.querySelector(s);
 const S={hero:localStorage.xrHero||'rebel',diff:localStorage.xrDiff||'normal',lang:localStorage.xrLang||'te',mute:localStorage.xrMute==='1'};
 let game=null,heroImg={};
+// Background movie dialogues per hero — edit freely: [Telugu, English transliteration · meaning]
+const DIALOGUES={
+ rebel:[['బాహుబలి!','Baahubali!'],['నా మాటే శాసనం','Naa maate shaasanam · My word is the law'],['ఒక్కసారి ఫిక్స్ అయితే...','Okkasari fix aithe... · Once I decide...'],['డార్లింగ్!','Darling!'],['అమరేంద్ర బాహుబలి అనే నేను...','Amarendra Baahubali ane nenu... · I, Amarendra Baahubali...']],
+ icon:[['తగ్గేదే లే','Thaggedhe Le · Not backing down'],['పుష్ప అంటే ఫ్లవర్ అనుకుంటివా? ఫైర్!','Pushpa ante flower anukuntiva? Fire!'],['పుష్ప... పుష్ప రాజ్','Pushpa... Pushpa Raj'],['వైల్డ్ ఫైర్!','Wild fire!'],['నేనే రాజు','Nene raju · I am the king']],
+ tiger:[['కొమురం భీముడో','Komuram Bheemudo'],['నాటు నాటు!','Naatu Naatu!'],['వీరా... రాఘవ','Veera... Raghava'],['టెంపర్ పెరిగితే ఎవ్వడూ ఆపలేడు','Temper perigithe evvadu aapaledu · No one stops me when angry'],['జై లవ కుశ','Jai Lava Kusa']],
+ heir:[['ఒక్కసారి కమిట్ అయితే నా మాట నేనే వినను','Okkasari commit aithe naa maata nene vinanu · Once I commit, I don\'t even listen to myself'],['ఎవడు కొడితే దిమ్మ తిరిగి మైండ్ బ్లాక్ అవుతుందో వాడే పండుగాడు','Evadu kodithe dimma tirigi mind block... vaade Pandugadu'],['ఐ యామ్ ఎ బిట్ ఫ్యామస్','I\'m a bit famous'],['కుర్చీ మడతపెట్టి','Kurchi madathapetti'],['శ్రీమంతుడు','Srimanthudu · The rich-hearted']],
+ prince:[['వంద మందిని ఒకేసారి పంపు','Vanda mandini okesari pampu · Send a hundred at once'],['రామ రాజు... సీతా రామ రాజు','Rama Raju... Seetha Rama Raju'],['నాటు నాటు!','Naatu Naatu!'],['మగధీర','Magadheera · The great warrior'],['చిట్టి బాబు','Chitti Babu']],
+ lion:[['ఫ్లూట్ జింక ముందు ఊదు, సింహం ముందు కాదు','Flute jinka mundu oodu, simham mundu kaadu · Play the flute to a deer, not a lion'],['జై బాలయ్య!','Jai Balayya!'],['కత్తులతో కాదురా, కంటిచూపుతో చంపేస్తా','Kattulatho kaadura, kantichooputho champesta · I kill with a glance, not swords'],['సింహం సింగిల్ గానే వస్తుంది','Simham single gaane vasthundi · The lion comes alone'],['దబిడి దిబిడి','Dabidi Dibidi']]};
+const dlgCache=new Map();
+function dlgSprite(txt,px,col){const k=txt+'|'+px+'|'+col;let c=dlgCache.get(k);if(c)return c;c=document.createElement('canvas');const x=c.getContext('2d');const f=`bold ${px}px "Noto Sans Telugu",Oswald,sans-serif`;x.font=f;const w=Math.ceil(x.measureText(txt).width)+8;c.width=Math.min(w,4096);c.height=Math.ceil(px*1.5);x.font=f;x.textBaseline='middle';x.fillStyle=col;x.fillText(txt,4,c.height/2);if(dlgCache.size>60)dlgCache.clear();dlgCache.set(k,c);return c}
+function drawDialogue(g,dt){const D=g.dlg||(g.dlg={t:0,i:-1,line:null,y:.3,hero:g.p.hero});D.t-=dt;if(D.t<=0){D.t=4.5;D.i++;const rival=g.ghost&&!g.ghost.empty&&g.ghost.hero!==g.p.hero&&D.i%3===2;D.hero=rival?g.ghost.hero:g.p.hero;const L=DIALOGUES[D.hero]||[];D.line=L.length?L[Math.random()*L.length|0]:null;D.y=.18+Math.random()*.35}
+ if(!D.line)return;const ph=1-D.t/4.5,a=Math.min(1,ph*4,(1-ph)*4)*.22;if(a<=0)return;const col=heroBy(D.hero)?.color||'#fff',big=Math.round(Math.max(18,Math.min(W,H)*.07)*DPR),sm=Math.round(big*.45);
+ cx.save();cx.setTransform(1,0,0,1,0,0);cx.globalAlpha=a;const dx=(1-ph)*40*DPR-20*DPR;let y=D.y*H*DPR;
+ if(S.lang==='te'){const s1=dlgSprite(D.line[0],big,col);{const k=Math.min(1,W*DPR*.92/s1.width);cx.drawImage(s1,(W*DPR-s1.width*k)/2+dx,y,s1.width*k,s1.height*k);y+=s1.height*k}}
+ const s2=dlgSprite(D.line[1],S.lang==='te'?sm:big,S.lang==='te'?'#fff':col);{const k=Math.min(1,W*DPR*.92/s2.width);cx.drawImage(s2,(W*DPR-s2.width*k)/2+dx,y,s2.width*k,s2.height*k)}cx.restore()}
+
 // ===== Audio =====
 let AC=null;function ac(){if(!AC){try{AC=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(AC&&AC.state==='suspended')AC.resume();return AC}
 function tone(f,d,type='square',v=.08,slide=0,delay=0){if(S.mute)return;const a=ac();if(!a)return;const t=a.currentTime+delay,o=a.createOscillator(),g=a.createGain();o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(slide,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g).connect(a.destination);o.start(t);o.stop(t+d+.02)}
@@ -77,6 +93,7 @@ function draw(){const g=game;cx.setTransform(DPR,0,0,DPR,0,0);
  if(!g)return;let sx=0,sy=0;if(g.shake>0){sx=(Math.random()-.5)*g.shake*U;sy=(Math.random()-.5)*g.shake*U}
  cx.save();cx.translate(sx,sy);const camX=g.p.x-(W/U)*(W<H?.2:.3);const X=x=>(x-camX)*U,Y=y=>y*U;
  cx.fillStyle='#2a1d14';city.forEach(c=>{let x=((c.x-camX*.3)%560+560)%560-20;cx.fillRect(x*U,(GROUND-c.h)*U,c.w*U,c.h*U);cx.fillStyle='#ffcf3a22';cx.fillRect(x*U+2,(GROUND-c.h+3)*U,2,2);cx.fillStyle='#2a1d14'});
+ cx.restore();{const n=performance.now();drawDialogue(g,g.paused?0:Math.min(.1,(n-(g._dn||n))/1000));g._dn=n};cx.save();cx.translate(sx,sy);
  match.course.forEach((b,i)=>{const x=X(b.x);if(x<-BW*U||x>W+20)return;const gap=g.p.gapOf(b,i);const top=b.c-gap/2,bot=b.c+gap/2,col=b.practice?'#666':'#c8331f';
   cx.fillStyle='#222';cx.fillRect(x+BW*U/2-2,0,4,GROUND*U);cx.fillStyle=col;cx.fillRect(x,0,BW*U,Y(top));cx.fillRect(x,Y(bot),BW*U,Y(GROUND-bot));if(!b.practice){cx.strokeStyle='#ff3a1f88';cx.lineWidth=3;cx.strokeRect(x-1.5,-2,BW*U+3,Y(top)+2);cx.strokeRect(x-1.5,Y(bot),BW*U+3,Y(GROUND-bot)+2)}
   cx.fillStyle='#ffcf3a';cx.fillRect(x,Y(top)-4,BW*U,4);cx.fillRect(x,Y(bot),BW*U,4);
