@@ -25,7 +25,7 @@ function setMute(m){S.mute=m;localStorage.xrMute=m?'1':'0';document.querySelecto
 function placeholder(h){const c=document.createElement('canvas');c.width=c.height=256;const x=c.getContext('2d');x.shadowColor=h.color;x.shadowBlur=24;x.strokeStyle=h.color;x.lineWidth=6;x.fillStyle=h.color+'33';
  x.beginPath();x.arc(128,92,46,0,7);x.fill();x.stroke();x.beginPath();x.moveTo(50,236);x.quadraticCurveTo(56,150,128,146);x.quadraticCurveTo(200,150,206,236);x.closePath();x.fill();x.stroke();
  x.shadowBlur=12;x.fillStyle='#fff';x.font='bold 40px Oswald,Arial Narrow,sans-serif';x.textAlign='center';x.fillText(h.name.toUpperCase(),128,214);return c.toDataURL()}
-function loadHero(h){return new Promise(res=>{const tryS=(list)=>{if(!list.length){const i=new Image();i.onload=()=>res(i);i.src=placeholder(h);return}const i=new Image();i.onload=()=>res(i);i.onerror=()=>tryS(list.slice(1));i.src=list[0]};tryS([`heroes/${h.id}.png`,`heroes/${h.id}.jpg`,`heroes/${h.id}.jpeg`,`heroes/${h.id}.webp`])})}
+function loadHero(h){return new Promise(res=>{const tryS=(list)=>{if(!list.length){const i=new Image();i.onload=()=>res(i);i.src=placeholder(h);return}const i=new Image();i.onload=()=>res(i);i.onerror=()=>tryS(list.slice(1));i.src=list[0]};tryS([`heroes/${h.id}.jpg`,`heroes/${h.id}.png`,`heroes/${h.id}.jpeg`,`heroes/${h.id}.webp`])})}
 const heroBy=id=>HEROES.find(h=>h.id===id);
 // ===== RNG / course =====
 function rng(seed){return()=>{seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
@@ -64,10 +64,12 @@ function simulate(hero,course,diff,seed){const r=rng(seed),R=new Runner(hero,cou
   if(hero==='tiger'&&!R.powerUsed&&R.passed>=5)R.usePower();if(hero==='rebel'&&!R.powerUsed&&R.passed>=3)R.usePower();
   R.step(R.slow>0?DT*.5:DT);if(R.slow>0)R.slow-=DT;kk+=R.slow>0?.5:1;if(kk>=2){kk-=2;fr.push([R.x,R.y])}}
  fr.push([R.x,R.y]);return{frames:fr,stats:R.stats(),hero}}
-function houseGhost(course,diff,seed,exclude){const hs=HEROES.filter(h=>h.id!==exclude);const hero=hs[seed%hs.length].id;const runs=[];for(let i=0;i<5;i++)runs.push(simulate(hero,course,diff,seed*7+i));runs.sort((a,b)=>a.stats.total-b.stats.total);return{...runs[2],name:'House ('+heroBy(hero).name+')'}}// median of 5
+const ghostCache=new Map();
+function houseGhost(course,diff,seed,exclude,key){if(key&&ghostCache.has(key))return ghostCache.get(key);const _g=houseGhostRaw(course,diff,seed,exclude);if(key)ghostCache.set(key,_g);return _g}
+function houseGhostRaw(course,diff,seed,exclude){const hs=HEROES.filter(h=>h.id!==exclude);const hero=hs[seed%hs.length].id;const runs=[];for(let i=0;i<5;i++)runs.push(simulate(hero,course,diff,seed*7+i));runs.sort((a,b)=>a.stats.total-b.stats.total);return{...runs[2],name:'House ('+heroBy(hero).name+')'}}// median of 5
 // ===== Canvas =====
 const cv=$('#cv'),cx=cv.getContext('2d');let W=0,H=0,U=1,DPR=1;
-function resize(){DPR=Math.min(2,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;U=H/100}
+function resize(){DPR=Math.min(1.5,devicePixelRatio||1);W=innerWidth;H=innerHeight;cv.width=W*DPR;cv.height=H*DPR;U=H/100}
 addEventListener('resize',resize);resize();
 const city=[...Array(40)].map((_,i)=>({x:i*14,h:15+((i*37)%30),w:9+(i*13)%6}));
 function draw(){const g=game;cx.setTransform(DPR,0,0,DPR,0,0);
@@ -76,38 +78,49 @@ function draw(){const g=game;cx.setTransform(DPR,0,0,DPR,0,0);
  cx.save();cx.translate(sx,sy);const camX=g.p.x-(W/U)*(W<H?.2:.3);const X=x=>(x-camX)*U,Y=y=>y*U;
  cx.fillStyle='#2a1d14';city.forEach(c=>{let x=((c.x-camX*.3)%560+560)%560-20;cx.fillRect(x*U,(GROUND-c.h)*U,c.w*U,c.h*U);cx.fillStyle='#ffcf3a22';cx.fillRect(x*U+2,(GROUND-c.h+3)*U,2,2);cx.fillStyle='#2a1d14'});
  match.course.forEach((b,i)=>{const x=X(b.x);if(x<-BW*U||x>W+20)return;const gap=g.p.gapOf(b,i);const top=b.c-gap/2,bot=b.c+gap/2,col=b.practice?'#666':'#c8331f';
-  cx.fillStyle='#222';cx.fillRect(x+BW*U/2-2,0,4,GROUND*U);cx.fillStyle=col;cx.shadowColor='#ff3a1f';cx.shadowBlur=b.practice?0:12;cx.fillRect(x,0,BW*U,Y(top));cx.fillRect(x,Y(bot),BW*U,Y(GROUND-bot));cx.shadowBlur=0;
+  cx.fillStyle='#222';cx.fillRect(x+BW*U/2-2,0,4,GROUND*U);cx.fillStyle=col;cx.fillRect(x,0,BW*U,Y(top));cx.fillRect(x,Y(bot),BW*U,Y(GROUND-bot));if(!b.practice){cx.strokeStyle='#ff3a1f88';cx.lineWidth=3;cx.strokeRect(x-1.5,-2,BW*U+3,Y(top)+2);cx.strokeRect(x-1.5,Y(bot),BW*U+3,Y(GROUND-bot)+2)}
   cx.fillStyle='#ffcf3a';cx.fillRect(x,Y(top)-4,BW*U,4);cx.fillRect(x,Y(bot),BW*U,4);
   cx.fillStyle='#ffcf3a33';cx.fillRect(x,Y(b.c-gap*.15),BW*U,Y(gap*.3));// center zone hint
   cx.fillStyle='#fff';cx.font=`bold ${Math.max(11,2.2*U)}px Oswald,sans-serif`;cx.textAlign='center';cx.fillText(b.practice?'PRACTICE':(b.idx+1),x+BW*U/2,Y(top)-8)});
  cx.fillStyle='#111';cx.fillRect(0,Y(GROUND),W,H);cx.fillStyle='#ffcf3a';cx.fillRect(0,Y(GROUND),W,3);cx.fillStyle='#555';for(let i=0;i<W/U/8+2;i++){cx.fillRect(((i*8-camX)%(W/U+8)+(W/U+8))%(W/U+8)*U,Y(GROUND+4),3*U,.6*U)}
- const gf=g.ghost.frames[Math.min(g.ghost.frames.length-1,Math.floor(g.gi))];if(gf){cx.globalAlpha=.4;drawHero(heroImg[g.ghost.hero],X(gf[0]),Y(gf[1]),0);cx.globalAlpha=1;cx.fillStyle='#7fd8ff';cx.font=`${Math.max(11,1.8*U)}px sans-serif`;cx.textAlign='center';cx.fillText(g.ghost.short||'GHOST',X(gf[0]),Y(gf[1])-6*U)}
+ const gf=g.ghost.frames[Math.min(g.ghost.frames.length-1,Math.floor(g.gi))];if(gf){const gdy=(g.count>0||g.gi<60)?-16*Math.max(0,1-g.gi/60):0,gx=X(gf[0]),gy=Y(gf[1]+gdy);cx.globalAlpha=.45;drawHero(heroImg[g.ghost.hero],gx,gy,0);cx.globalAlpha=1;if(g.ghost.short){cx.font=`bold ${Math.max(12,2*U)}px sans-serif`;cx.textAlign='center';cx.lineWidth=3;cx.strokeStyle='#000';cx.strokeText(g.ghost.short,gx,gy-HR*1.9*U);cx.fillStyle='#7fd8ff';cx.fillText(g.ghost.short,gx,gy-HR*1.9*U)}}
  const p=g.p;if(!(p.inv>0&&Math.floor(p.inv*10)%2))drawHero(heroImg[p.hero],X(p.x),Y(p.y),Math.max(-.5,Math.min(.8,p.vy/90)));
  if(p.shield){cx.strokeStyle='#5fd3ff';cx.lineWidth=2;cx.beginPath();cx.arc(X(p.x),Y(p.y),HR*1.6*U,0,7);cx.stroke()}
  g.pops.forEach(o=>{cx.globalAlpha=Math.max(0,o.t);cx.fillStyle=o.col;cx.font=`bold ${Math.max(18,3.6*U)}px Oswald,sans-serif`;cx.textAlign='center';cx.strokeStyle='#000';cx.lineWidth=4;cx.strokeText(o.txt,X(o.x),Y(o.y));cx.fillText(o.txt,X(o.x),Y(o.y));cx.globalAlpha=1});
  cx.restore();
  if(p.slow>0){cx.fillStyle='#ff8a0022';cx.fillRect(0,0,W,H)}
- if(g.count>0){cx.fillStyle='#000a';cx.fillRect(0,0,W,H);cx.fillStyle='#ffcf3a';cx.textAlign='center';cx.font=`bold ${22*U}px Oswald,sans-serif`;cx.fillText(Math.ceil(g.count),W/2,H/2+7*U);cx.font=`${Math.max(16,3*U)}px sans-serif`;cx.fillStyle='#fff';cx.fillText(g.label,W/2,H/2+16*U)}}
-function drawHero(img,x,y,rot){const s=HR*2.8*U;cx.save();cx.translate(x,y);cx.rotate(rot);if(img)cx.drawImage(img,-s/2,-s/2,s,s);cx.restore()}
+ if(g.count>0){cx.fillStyle='#000a';cx.fillRect(0,0,W,H);cx.fillStyle='#ffcf3a';cx.textAlign='center';cx.font=`bold ${22*U}px Oswald,sans-serif`;cx.fillText(Math.ceil(g.count),W/2,H/2+7*U);cx.font=`${Math.max(16,3*U)}px sans-serif`;cx.fillStyle='#fff';cx.fillText(g.label,W/2,H/2+16*U)}
+ if(g.rc>0){cx.fillStyle='#0008';cx.fillRect(0,0,W,H);cx.fillStyle='#ffcf3a';cx.textAlign='center';cx.font=`bold ${22*U}px Oswald,sans-serif`;cx.fillText(Math.ceil(g.rc),W/2,H/2+7*U);cx.font=`${Math.max(16,3*U)}px sans-serif`;cx.fillStyle='#fff';cx.fillText('Get ready…',W/2,H/2+16*U)}}
+const spriteCache=new Map();
+function heroSprite(img,px){px=Math.max(16,Math.round(px));const k=img&&img.src;let m=spriteCache.get(k);if(!m){m={};spriteCache.set(k,m)}if(m[px])return m[px];
+ const c=document.createElement('canvas');c.width=c.height=px;const x=c.getContext('2d'),r=px/2,ring=Math.max(2,px*.07);
+ x.save();x.beginPath();x.arc(r,r,r-ring*.5,0,Math.PI*2);x.clip();const iw=img.naturalWidth||img.width,ih=img.naturalHeight||img.height,sz=Math.min(iw,ih),sx=(iw-sz)/2,sy=(ih-sz)*.2;
+ x.drawImage(img,sx+sz*.02,sy+sz*.02,sz*.96,sz*.96,0,0,px,px);x.restore();
+ x.strokeStyle='#ff8a00';x.lineWidth=ring;x.beginPath();x.arc(r,r,r-ring/2,0,Math.PI*2);x.stroke();return m[px]=c}
+function drawHero(img,x,y,rot){const s=HR*2.8*U;if(!img)return;const spr=heroSprite(img,s*DPR);cx.save();cx.translate(x,y);cx.rotate(rot);cx.drawImage(spr,-s/2,-s/2,s,s);cx.restore()}
 // ===== Game flow =====
 let mode='house',match=null;
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('hidden',s.id!==id));const play=id===null;['#hud','#flavor','#tap'].forEach(q=>$(q).classList.toggle('hidden',!play))}
-function startMatch(m){ac();mode=m;const seed=m==='newprint'?(Math.random()*1e9|0):(Math.floor(Date.now()/864e5)*31+1);const course=makeCourse(seed,S.diff,$('#practice').checked);
+function dailySeed(){return Math.floor(Date.now()/864e5)*31+1}
+let nextPrintSeed=Math.random()*1e9|0;const gKey=(seed,diff,pr,hero)=>seed+'|'+diff+'|'+(pr?1:0)+'|'+hero;
+let preT=0;function precompute(){clearTimeout(preT);const idle=window.requestIdleCallback||(f=>setTimeout(f,30));preT=setTimeout(()=>{const pr=$('#practice').checked;[dailySeed(),nextPrintSeed].forEach((seed,i)=>idle(()=>{const k=gKey(seed,S.diff,pr,S.hero);if(!ghostCache.has(k))houseGhost(makeCourse(seed,S.diff,pr),S.diff,seed>>>0,S.hero,k)}))},120)}
+function startMatch(m){ac();mode=m;let seed;if(m==='newprint'){seed=nextPrintSeed;nextPrintSeed=Math.random()*1e9|0}else seed=dailySeed();const pr=$('#practice').checked;const course=makeCourse(seed,S.diff,pr);
  match={mode:m,seed,course,diff:S.diff,players:[]};
- const opp=m==='pass'?null:houseGhost(course,S.diff,seed>>>0,S.hero);match.house=opp;
+ const opp=m==='pass'?null:houseGhost(course,S.diff,seed>>>0,S.hero,gKey(seed,S.diff,pr,S.hero));match.house=opp;setTimeout(precompute,1500);
  runRound(S.hero,m==='pass'?'Player 1':'You',opp||{frames:[[0,45]],stats:null,hero:S.hero,name:'(no rival yet)',short:'',empty:true})}
 function runRound(hero,label,ghost){const p=new Runner(hero,match.course,match.diff);ghost.short=ghost.short??(ghost.empty?'':'RIVAL');
  game={p,ghost,gi:0,count:3,label:`${label} · ${heroBy(hero).name}`,lastCount:4,pops:[],shake:0,paused:false,over:false,who:label,flv:0};
  $('#gName').textContent=ghost.empty?'NO RIVAL (P1 sets the mark)':'vs '+ghost.name;const H_=heroBy(hero);$('#bPower').classList.toggle('hidden',!H_.active);$('#powHint').textContent=H_.name+': '+H_.power;
  show(null);setFlavor()}
 function setFlavor(){const f=FLAVOR[Math.random()*FLAVOR.length|0];$('#flavor').textContent=S.lang==='te'?`${f[0]}  ·  ${f[1]}`:f[1]}
-function flap(){if(!game||game.paused||game.over)return;if(game.count>0)return;game.p.flap();SFX.flap()}
+function flap(){if(!game||game.paused||game.over)return;if(game.count>0||game.rc>0)return;game.p.flap();SFX.flap()}
 function power(){if(!game||game.paused||game.count>0)return;if(game.p.usePower()){SFX.power();game.pops.push({txt:game.p.hero==='tiger'?'SLOW-MO!':'WIDE GAP!',col:'#ff8a00',x:game.p.x,y:game.p.y-8,t:1.2});$('#bPower').disabled=true}}
-function pause(on){if(!game||game.over)return;game.paused=on;$('#pauseS').classList.toggle('hidden',!on)}
+function pause(on){if(!game||game.over)return;if(on===game.paused)return;game.paused=on;if(!on&&game.count<=0){game.rc=3;game.lastRc=4}$('#pauseS').classList.toggle('hidden',!on)}
 let last=0,acc=0;
 function loop(t){requestAnimationFrame(loop);const dt=Math.min(.05,(t-last)/1000||0);last=t;const g=game;
  if(g&&!g.paused&&!g.over){
   if(g.count>0){g.count-=dt;g.p.y=45+Math.sin(t/200)*2;const c=Math.ceil(g.count);if(c!==g.lastCount&&c>0){g.lastCount=c;SFX.count(false)}if(g.count<=0){SFX.count(true);g.p.vy=FLAP*.7}}
+  else if(g.rc>0){const c=Math.ceil(g.rc);if(c!==g.lastRc){g.lastRc=c;SFX.count(false)}g.rc-=dt;if(g.rc<=0){g.rc=0;SFX.count(true);acc=0}}
   else{acc+=dt;while(acc>=DT){acc-=DT;const sc=g.p.slow>0?.5:1;g.p.step(DT*sc);if(g.p.slow>0)g.p.slow-=DT;g.gi+=sc*.5}
    g.p.events.splice(0).forEach(([txt,col,snd])=>{g.pops.push({txt,col,x:g.p.x,y:g.p.y-6,t:1.2});if(snd&&SFX[snd])SFX[snd]();if(snd==='whistle'||snd==='crash')g.shake=snd==='crash'?3:1.6;if(txt.startsWith('EXTRA')||txt==='SHIELD!'){SFX.hit();g.shake=2}});
    if(Math.random()<.002)setFlavor();
@@ -129,7 +142,7 @@ const _step=Runner.prototype.step;Runner.prototype.step=function(dt){_step.call(
 // ===== Fight =====
 let fightTimer=[];
 function fight(A,B){show('fight');const tA=A.stats.total,tB=B.stats.total;$('#fN1').textContent=`${A.label} · ${tA}`;$('#fN2').textContent=`${B.label} · ${tB}`;
- $('#f1').innerHTML=`<img src="${heroImg[A.hero].src}">`;$('#f2').innerHTML=`<img src="${heroImg[B.hero].src}">`;['#f1','#f2'].forEach(q=>{const e=$(q);e.className='fighter '+(q==='#f1'?'l':'r');void e.offsetWidth});
+ [['#f1',A],['#f2',B]].forEach(([q,P])=>{const im=heroImg[P.hero].cloneNode();im.alt=heroBy(P.hero).name;im.decoding='sync';$(q).replaceChildren(im)});['#f1','#f2'].forEach(q=>{const e=$(q);e.className='fighter '+(q==='#f1'?'l':'r');void e.offsetWidth});
  const vs=$('#vs');vs.style.animation='none';void vs.offsetWidth;vs.style.animation='';
  let h1=100,h2=100;$('#hp1').style.width=$('#hp2').style.width='100%';$('#meme').className='meme';$('#meme').textContent='';
  const mx=Math.max(tA,tB,1);// damage scaled by scores
@@ -143,24 +156,25 @@ function fight(A,B){show('fight');const tA=A.stats.total,tB=B.stats.total;$('#fN
  fightTimer.push(setTimeout(()=>result(A,B),900+steps*280+3200));match.fight=[A,B]}
 $('#skipFight').onclick=()=>{fightTimer.forEach(clearTimeout);result(...match.fight)};
 // ===== Result =====
+const hdr=P=>{const n=heroBy(P.hero).name;return P.label.includes('('+n+')')?P.label:`${P.label} (${n})`};
 function result(A,B){fightTimer.forEach(clearTimeout);show('result');const human=match.mode==='pass'?null:A;const d=A.stats.total-B.stats.total;
  const v=$('#verdict');if(match.mode==='pass'){const w=d>0?A:d<0?B:null;v.className='verdict win';v.innerHTML=w?`${w.label.toUpperCase()} WINS!<small>by ${Math.abs(d)} points (${A.stats.total} vs ${B.stats.total})</small>`:`DRAW<small>${A.stats.total} each</small>`;SFX.win()}
  else{v.className='verdict '+(d>=0?'win':'lose');v.innerHTML=d>0?`BLOCKBUSTER! YOU WIN<small>by ${d} points (${A.stats.total} vs ${B.stats.total})</small>`:d<0?`FLOP. YOU LOSE<small>by ${-d} points (${A.stats.total} vs ${B.stats.total})</small>`:`DRAW<small>${A.stats.total} each</small>`;(d>=0?SFX.win:SFX.lose)()}
  const r=(k,f)=>`<tr><td>${k}</td><td>${f(A.stats)}</td><td>${f(B.stats)}</td></tr>`;
- $('#breakdown').innerHTML=`<tr><th>Column</th><th>${A.label} (${heroBy(A.hero).name})</th><th>${B.label} (${heroBy(B.hero).name})</th></tr>`+
+ $('#breakdown').innerHTML=`<tr><th>Column</th><th>${hdr(A)}</th><th>${hdr(B)}</th></tr>`+
   r('Share = banners × 10',s=>`${s.passed} × 10 = <b>${s.share}</b>`)+r('Gross = seats',s=>`${s.passed} base + ${s.centers} centers + ${s.whistles} whistles + combo = <b>${s.gross}</b>`)+
   r('Overseas = best combo × 5',s=>`${s.best} × 5 = <b>${s.overseas}</b>`)+r('Loudest = whistles × 5',s=>`${s.whistles} × 5 = <b>${s.loudest}</b>`)+r('<b>TOTAL</b>',s=>`<b>${s.total}</b>`);
  const humans=match.mode==='pass'?[A,B]:[A];const ne=$('#nameEntry');ne.innerHTML='';
- humans.forEach((h,i)=>{const d_=document.createElement('div');d_.style.margin='8px';d_.innerHTML=`<input type="text" maxlength="16" placeholder="${h.label} name" value="${localStorage['xrName'+i]||''}"> <button class="big">Save ${h.stats.total} to leaderboard</button>`;
-  d_.querySelector('button').onclick=e=>{const nm=d_.querySelector('input').value.trim();if(!nm){d_.querySelector('input').focus();return}localStorage['xrName'+i]=nm;addLB({name:nm,score:h.stats.total,hero:h.hero,diff:match.diff,passed:h.stats.passed,date:new Date().toISOString().slice(0,10)});d_.innerHTML=`✓ Saved for ${nm.replace(/</g,'')}`};ne.appendChild(d_)});
+ humans.forEach((h,i)=>{const d_=document.createElement('div');d_.style.margin='8px';if(!(h.stats.total>0)){d_.textContent=`${h.label}: 0 points — not saved to leaderboard.`;ne.appendChild(d_);return}d_.innerHTML=`<input type="text" maxlength="16" placeholder="${h.label} name"> <button class="big">Save ${h.stats.total} to leaderboard</button>`;d_.querySelector('input').value=(localStorage['xrName'+i]||'').slice(0,16);
+  d_.querySelector('button').onclick=e=>{const nm=d_.querySelector('input').value.trim().slice(0,16);if(!nm||!(h.stats.total>0)){d_.querySelector('input').focus();return}localStorage['xrName'+i]=nm;addLB({name:nm,score:h.stats.total,hero:h.hero,diff:match.diff,passed:h.stats.passed,date:new Date().toISOString().slice(0,10)});d_.innerHTML=`✓ Saved for ${nm.replace(/</g,'')}`};ne.appendChild(d_)});
  renderLB()}
 // ===== Leaderboard (localStorage, real entries only) =====
-function getLB(){try{return JSON.parse(localStorage.xrLB||'[]')}catch(e){return[]}}
-function addLB(e){const l=getLB();l.push(e);l.sort((a,b)=>b.score-a.score);localStorage.xrLB=JSON.stringify(l.slice(0,20));renderLB()}
+function getLB(){try{return JSON.parse(localStorage.xrLB||'[]').filter(e=>e&&String(e.name||'').trim()&&e.score>0)}catch(e){return[]}}
+function addLB(e){e.name=String(e.name||'').trim().slice(0,16);if(!e.name||!(e.score>0))return;const l=getLB();l.push(e);l.sort((a,b)=>b.score-a.score);localStorage.xrLB=JSON.stringify(l.slice(0,20));renderLB()}
 function renderLB(){const l=getLB();const esc=s=>String(s).replace(/[<&>"]/g,c=>'&#'+c.charCodeAt(0)+';');const h=l.length?`<table class="gloss lb"><tr><th>#</th><th>Name</th><th>Score</th><th>Hero</th><th>Diff</th><th>Banners</th></tr>${l.slice(0,10).map((e,i)=>`<tr><td>${i+1}</td><td>${esc(e.name)}</td><td>${e.score}</td><td>${esc(heroBy(e.hero)?.name||'')}</td><td>${esc(e.diff)}</td><td>${e.passed}/10</td></tr>`).join('')}</table>`:'<p>No scores yet — play a round and save your name.</p>';$('#lbMenu').innerHTML=h;$('#lbRes').innerHTML=h}
 // ===== Menu =====
-function buildGrid(sel,powSel){const g=$(sel);g.innerHTML='';HEROES.forEach(h=>{const b=document.createElement('button');b.className='hero big'+(S.hero===h.id?' sel':'');b.innerHTML=`<img alt="${h.name}" src="${heroImg[h.id]?.src||''}"><span>${h.name}</span>`;b.title=h.power;b.onclick=()=>{S.hero=h.id;localStorage.xrHero=h.id;buildGrid(sel,powSel)};g.appendChild(b)});$(powSel).textContent='⚡ '+heroBy(S.hero).name+' power: '+heroBy(S.hero).power}
-document.querySelectorAll('#diffSeg button').forEach(b=>{b.onclick=()=>{S.diff=b.dataset.d;localStorage.xrDiff=S.diff;document.querySelectorAll('#diffSeg button').forEach(x=>x.classList.toggle('sel',x===b))};b.classList.toggle('sel',b.dataset.d===S.diff)});
+function buildGrid(sel,powSel){const g=$(sel);g.innerHTML='';HEROES.forEach(h=>{const b=document.createElement('button');b.className='hero big'+(S.hero===h.id?' sel':'');b.innerHTML=`<img alt="${h.name}" src="${heroImg[h.id]?.src||''}"><span>${h.name}</span>`;b.title=h.power;b.onclick=()=>{S.hero=h.id;localStorage.xrHero=h.id;buildGrid(sel,powSel);precompute()};g.appendChild(b)});$(powSel).textContent='⚡ '+heroBy(S.hero).name+' power: '+heroBy(S.hero).power}
+document.querySelectorAll('#diffSeg button').forEach(b=>{b.onclick=()=>{S.diff=b.dataset.d;localStorage.xrDiff=S.diff;document.querySelectorAll('#diffSeg button').forEach(x=>x.classList.toggle('sel',x===b));precompute()};b.classList.toggle('sel',b.dataset.d===S.diff)});
 document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>startMatch(b.dataset.mode));
 $('#p2Go').onclick=()=>{const p1=match.players[0];runRound(S.hero,'Player 2',{frames:match.p1ghost||[[0,45]],hero:p1.hero,name:'Player 1 ('+heroBy(p1.hero).name+')',short:'P1'})};
 $('#p2Back').onclick=$('#toMenu').onclick=()=>{game=null;show('menu');buildGrid('#heroGrid','#heroPow');renderLB()};
@@ -174,5 +188,6 @@ $('#langBtn').textContent=S.lang==='te'?'Flavor: తెలుగు + EN':'Flavo
 cv.addEventListener('pointerdown',e=>{e.preventDefault();flap()});
 addEventListener('keydown',e=>{if(e.code==='Space'||e.code==='ArrowUp'){e.preventDefault();flap()}else if(e.code==='KeyE')power();else if(e.code==='KeyP'||e.code==='Escape')pause(!(game&&game.paused));else if(e.code==='KeyM')setMute(!S.mute)});
 setMute(S.mute);
-Promise.all(HEROES.map(h=>loadHero(h).then(i=>heroImg[h.id]=i))).then(()=>{buildGrid('#heroGrid','#heroPow');renderLB()});
+Promise.all(HEROES.map(h=>loadHero(h).then(i=>heroImg[h.id]=i))).then(()=>{buildGrid('#heroGrid','#heroPow');renderLB();precompute()});
+$('#practice').addEventListener('change',precompute);
 window.__xr={get game(){return game},get match(){return match}};
